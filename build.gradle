@@ -1,0 +1,75 @@
+plugins {
+    id 'idea'
+    id 'scala'
+    id 'maven-publish'
+    id 'org.gradle.playframework' version '0.12'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name "lightbend-maven-release"
+        url "https://repo.lightbend.com/lightbend/maven-releases"
+    }
+    ivy {
+        name "lightbend-ivy-release"
+        url "https://repo.lightbend.com/lightbend/ivy-releases"
+        layout "ivy"
+    }
+
+}
+
+idea {
+    module {
+        inheritOutputDirs = true
+        sourceDirs += file('app/java')
+        sourceDirs += file('app/scala')
+    }
+}
+
+apply from: 'version.gradle'
+def guiPlayVersion = "2.8.19"
+def guiScalaVersion = scalaVersion
+sourceCompatibility = 1.8
+group 'cz.playframework-sandbox'
+archivesBaseName = "api_${guiScalaVersion}"
+
+test {
+    useJUnitPlatform()
+}
+
+play {
+    platform {
+        playVersion = "${guiPlayVersion}"
+        scalaVersion = "${guiScalaVersion}"
+        javaVersion = JavaVersion.VERSION_1_8
+    }
+    injectedRoutesGenerator = true
+}
+
+
+dependencies {
+    implementation "commons-lang:commons-lang:2.6"
+    implementation "com.typesafe.play:play-guice_${scalaVersion}:${guiPlayVersion}"
+    implementation "ch.qos.logback:logback-classic:1.2.3"
+    //implementation group: 'com.github.dwickern', name: "swagger-play2.8_${guiScalaVersion}", version: '3.1.0'
+    // swagger
+    implementation(group: 'com.iterable', name: "swagger-play_${scalaVersion}", version: '2.0.1')
+    implementation(group: 'org.webjars', name: "webjars-play_${scalaVersion}", version: '2.7.3')
+    implementation(group: 'org.webjars', name: 'swagger-ui', version: '3.25.0')
+
+
+    implementation 'com.typesafe.play:play-slick_2.13:5.0.0'
+    implementation 'com.typesafe.play:play-slick-evolutions_2.13:5.0.0'
+    implementation 'org.slf4j:slf4j-nop:1.6.4' // You can use any other SLF4J implementation you prefer
+
+    // H2 in-memory database
+    implementation 'com.h2database:h2:1.4.200'
+    // PostgreSQL database
+    implementation 'org.postgresql:postgresql:42.3.1'
+
+    compileOnly(group: 'org.scala-lang', name: 'scala-compiler', version: "$scalaVersion.9")
+    testImplementation "org.scalatestplus.play:scalatestplus-play_${scalaVersion}:5.1.0"
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.4.2")
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.8.2")
+}

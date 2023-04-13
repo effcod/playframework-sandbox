@@ -1,0 +1,7 @@
+# Routes
+GET     /api/heathCheck                         sandbox.controllers.BasicController.healthCheck()
+GET     /api/version                            sandbox.controllers.BasicController.version()
+POST    /api/login                              sandbox.controllers.AuthController.login()
+POST    /api/logout                             sandbox.controllers.AuthController.logout()
+GET     /api/apps/:appName/tabs/:tabName        sandbox.controllers.TabsController.getRows(appName: String, tabName: String)
+POST    /api/apps/:appName/tabs/:tabName        sandbox.controllers.TabsController.newRows(appName: String, tabName: String)
