@@ -8,8 +8,10 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import slick.jdbc.H2Profile.api._
 
 import java.nio.file.Paths
+import java.sql.Timestamp
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import scala.util.Using
 
 class DatabaseServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
 
@@ -17,7 +19,7 @@ class DatabaseServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
     new GuiceApplicationBuilder()
       .configure("slick.dbs.default.profile" -> "slick.jdbc.H2Profile$")
       .configure("slick.dbs.default.db.driver" -> "org.h2.Driver")
-      .configure("slick.dbs.default.db.url" -> "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL")
+      .configure("slick.dbs.default.db.url" -> "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;MODE=Oracle")
       .build()
   }
 
@@ -28,7 +30,12 @@ class DatabaseServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
     // play.Environment.simple().classLoader().getResource("testdata.sql") - also different args/paths
 
     val testpath = Paths.get(play.Environment.simple().rootPath().toPath.toAbsolutePath.toString, "test","resources","testdata.sql")
-    val testdataSql = scala.io.Source.fromFile(testpath.toString).getLines().mkString
+    val testdataSql = Using(scala.io.Source.fromFile(testpath.toString)) { inStream =>
+      inStream
+        .getLines()
+        .mkString
+    }.getOrElse(throw new Exception("Missing version.properties"))
+
     val dbConfigProvider = app.injector.instanceOf[DatabaseConfigProvider]
     val db = dbConfigProvider.get.db
     Await.result(db.run(sqlu"""#$testdataSql"""), Duration.Inf)
@@ -51,10 +58,10 @@ class DatabaseServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
       result mustBe a[List[_]]
       result.headOption.foreach { row =>
         row mustBe a[Map[_, _]]
-        row("id") mustBe a[Long]
-        row("name") mustBe a[String]
-        row("measure_date") mustBe a[Long] // The date is converted to Long millisec from epoch
-        row("height") mustBe a[java.math.BigDecimal]
+        row("ID") mustBe a[Long]
+        row("NAME") mustBe a[String]
+        row("MEASURE_DATE") mustBe a[Timestamp]
+        row("HEIGHT") mustBe a[java.math.BigDecimal]
       }
     }
   }

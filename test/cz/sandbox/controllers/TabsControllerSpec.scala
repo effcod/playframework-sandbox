@@ -9,6 +9,7 @@ import play.api.libs.json.Json
 import play.api.mvc.{Result, Results}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import cz.sandbox.models.App
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -29,24 +30,33 @@ class TabsControllerSpec extends PlaySpec with MockitoSugar with Results {
       contentAsString(result2) mustBe "appName and tabName must not be empty"
     }
 
-    "return JSON data if appName and tabName are non-empty" in {
+    "return Forbidden if REST is not allowed for the given appName" in {
+      when(mockConfigDatabaseService.getAllApps).thenReturn(Future.successful(Seq(App("appName", "appDesc", Some(false)))))
+
+      val result: Future[Result] = controller.getRows("appName", "tabName").apply(FakeRequest())
+      status(result) mustBe FORBIDDEN
+      contentAsString(result) mustBe "Not allowed"
+    }
+
+    "return JSON data if appName and tabName are non-empty and REST is allowed for the given appName" in {
+      when(mockConfigDatabaseService.getAllApps).thenReturn(Future.successful(Seq(App("appName", "appDesc", Some(true)))))
       when(mockQueryDatabaseService.getData("appName", "tabName")).thenReturn(Future.successful(List(Map("key" -> "value"))))
 
       val result: Future[Result] = controller.getRows("appName", "tabName").apply(FakeRequest())
       status(result) mustBe OK
       val json = contentAsJson(result)
-      println(json)
       json mustBe Json.obj("records" -> Json.arr(Json.obj("key" -> "value")))
     }
 
     "return InternalServerError if an exception is thrown" in {
-      when(mockQueryDatabaseService.getData("appName", "tabName")).thenReturn(Future.failed(new Exception("error message")))
+      when(mockConfigDatabaseService.getAllApps).thenReturn(Future.failed(new Exception("error message")))
 
       val result: Future[Result] = controller.getRows("appName", "tabName").apply(FakeRequest())
       status(result) mustBe INTERNAL_SERVER_ERROR
       contentAsString(result) mustBe "error message"
     }
   }
+
   "TabsController#newRows" should {
     "return BadRequest if appName or tabName are empty" in {
       val result1: Future[Result] = controller.newRows("", "tabName").apply(FakeRequest())
