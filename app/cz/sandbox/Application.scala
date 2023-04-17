@@ -1,4 +1,4 @@
-package sandbox
+package cz.sandbox
 
 import com.google.inject.{Inject, Singleton}
 import play.api.inject.ApplicationLifecycle

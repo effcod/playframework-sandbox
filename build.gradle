@@ -52,6 +52,7 @@ dependencies {
     implementation "commons-lang:commons-lang:2.6"
     implementation "com.typesafe.play:play-guice_${scalaVersion}:${guiPlayVersion}"
     implementation "ch.qos.logback:logback-classic:1.2.3"
+
     //implementation group: 'com.github.dwickern', name: "swagger-play2.8_${guiScalaVersion}", version: '3.1.0'
     // swagger
     implementation(group: 'com.iterable', name: "swagger-play_${scalaVersion}", version: '2.0.1')
@@ -59,17 +60,44 @@ dependencies {
     implementation(group: 'org.webjars', name: 'swagger-ui', version: '3.25.0')
 
 
-    implementation 'com.typesafe.play:play-slick_2.13:5.0.0'
-    implementation 'com.typesafe.play:play-slick-evolutions_2.13:5.0.0'
+
+    implementation 'com.typesafe.play:play-slick_2.13:5.1.0'
+    implementation 'com.typesafe.play:play-slick-evolutions_2.13:5.1.0'
     implementation 'org.slf4j:slf4j-nop:1.6.4' // You can use any other SLF4J implementation you prefer
 
     // H2 in-memory database
-    implementation 'com.h2database:h2:1.4.200'
+    implementation 'com.h2database:h2:2.1.214'
     // PostgreSQL database
     implementation 'org.postgresql:postgresql:42.3.1'
 
     compileOnly(group: 'org.scala-lang', name: 'scala-compiler', version: "$scalaVersion.9")
     testImplementation "org.scalatestplus.play:scalatestplus-play_${scalaVersion}:5.1.0"
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.4.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.2")
+    testImplementation 'org.scalatestplus:mockito-4-6_2.13:3.2.15.0'
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.8.2")
+}
+
+tasks.withType(Test) {
+    useJUnitPlatform()
+
+    testLogging {     // This is for logging and can be removed.
+        events("passed", "skipped", "failed")
+    }
+}
+
+task generateVersionProperties {
+    doLast {
+        def properties = new Properties()
+        properties.setProperty('version', version)
+        def file = new File("${project.projectDir}/conf/version.properties")
+        file.withWriter { writer ->
+            properties.store(writer, null)
+        }
+    }
+}
+
+processResources.dependsOn generateVersionProperties
+
+runPlay {
+
 }

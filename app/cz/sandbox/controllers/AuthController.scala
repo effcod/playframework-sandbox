@@ -1,4 +1,4 @@
-package sandbox.controllers
+package cz.sandbox.controllers
 
 import com.google.inject.{Inject, Singleton}
 import io.swagger.annotations.Api

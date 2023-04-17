@@ -1,4 +1,4 @@
-package sandbox.services
+package cz.sandbox.services
 
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.{GetResult, JdbcProfile}
@@ -8,6 +8,15 @@ import scala.concurrent.{ExecutionContext, Future}
 
 
 //https://scala-slick.org/doc/3.3.3/database.html#connection-pool
+
+case class MyTable(
+                    stringValue: Option[String],
+                    dateValue: Option[java.sql.Date],
+                    charValue: Option[String],
+                    numberValue: Option[BigDecimal],
+                    timestampValue: Option[java.sql.Timestamp]
+                  )
+
 
 class DatabaseService @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
                                (implicit ec: ExecutionContext)
@@ -20,25 +29,16 @@ class DatabaseService @Inject()(protected val dbConfigProvider: DatabaseConfigPr
     db.run(sql"SELECT 1".as[Int].headOption).map(_.isDefined)
   }
 
-  implicit val getDynamicResult: GetResult[Map[String, Any]] = GetResult { r =>
-    val metadata = r.rs.getMetaData
-    val columnCount = metadata.getColumnCount
-    (1 to columnCount).map { i =>
-      val columnName = metadata.getColumnName(i)
-      val columnType = metadata.getColumnType(i)
-
-      columnType match {
-        case java.sql.Types.TIMESTAMP =>
-          columnName -> r.nextTimestamp().getTime
-        case java.sql.Types.DATE =>
-          columnName -> r.nextDate().getTime
-        case _ =>
-          columnName -> r.nextObject()
-      }
-    }.toMap
-  }
-
   def getData(schema: String, tableName: String): Future[List[Map[String, Any]]] = {
+    implicit val getMapResult: GetResult[Map[String, Any]] = GetResult[Map[String, Any]] { r =>
+      val rs = r.rs // <- r is PositionedResult which wraps ResultSet
+      val md = rs.getMetaData
+      val res = (1 to r.numColumns).map { i =>
+        md.getColumnName(i) -> rs.getObject(i)
+      }.toMap
+      res
+    }
+
     val query = sql"SELECT * FROM #$schema.#$tableName".as[Map[String, Any]]
     db.run(query).map(_.toList)
   }

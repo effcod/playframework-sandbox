@@ -1,10 +1,11 @@
 
-package sandbox.modules
+package cz.sandbox.modules
 
 import com.google.inject.{AbstractModule, Provides, Singleton}
 import org.slf4j.LoggerFactory
 import play.api.Configuration
-import sandbox.MyConfig
+import cz.sandbox.MyConfig
+
 
 class MyConfigModule extends AbstractModule {
   override def configure(): Unit = ()

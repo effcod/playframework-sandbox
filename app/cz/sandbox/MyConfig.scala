@@ -1,4 +1,4 @@
-package sandbox
+package cz.sandbox
 
 //import com.github.racc.tscg.TypesafeConfig
 

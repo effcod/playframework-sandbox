@@ -1,4 +1,4 @@
-package sandbox.utils
+package cz.sandbox.utils
 
 import play.api.libs.json._
 
