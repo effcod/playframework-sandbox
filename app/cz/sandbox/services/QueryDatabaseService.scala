@@ -9,25 +9,12 @@ import scala.concurrent.{ExecutionContext, Future}
 
 //https://scala-slick.org/doc/3.3.3/database.html#connection-pool
 
-case class MyTable(
-                    stringValue: Option[String],
-                    dateValue: Option[java.sql.Date],
-                    charValue: Option[String],
-                    numberValue: Option[BigDecimal],
-                    timestampValue: Option[java.sql.Timestamp]
-                  )
-
-
-class DatabaseService @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
-                               (implicit ec: ExecutionContext)
+class QueryDatabaseService @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+                                   (implicit ec: ExecutionContext)
   extends HasDatabaseConfigProvider[JdbcProfile] {
 
   import profile.api._
 
-
-  def checkConnection(): Future[Boolean] = {
-    db.run(sql"SELECT 1".as[Int].headOption).map(_.isDefined)
-  }
 
   def getData(schema: String, tableName: String): Future[List[Map[String, Any]]] = {
     implicit val getMapResult: GetResult[Map[String, Any]] = GetResult[Map[String, Any]] { r =>

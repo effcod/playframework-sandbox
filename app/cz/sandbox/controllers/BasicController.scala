@@ -1,13 +1,13 @@
 package cz.sandbox.controllers
 
-import cz.sandbox.services.DatabaseService
+import cz.sandbox.services.ConfigDatabaseService
 import play.api.mvc._
 
 import javax.inject.Inject
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Using}
 
-class BasicController @Inject()(cc: ControllerComponents, databaseService: DatabaseService)(implicit ec: ExecutionContext)
+class BasicController @Inject()(cc: ControllerComponents, confDatabaseService: ConfigDatabaseService)(implicit ec: ExecutionContext)
   extends AbstractController(cc) {
   def version(): Action[AnyContent] = Action {
     val properties = new java.util.Properties()
@@ -21,7 +21,7 @@ class BasicController @Inject()(cc: ControllerComponents, databaseService: Datab
   }
 
   def healthCheck(): Action[AnyContent] = Action.async {
-    databaseService.checkConnection().map { isConnected =>
+    confDatabaseService.checkConnection().map { isConnected =>
       if (isConnected) Ok("Database connection is working")
       else InternalServerError("Database connection is not working")
     }

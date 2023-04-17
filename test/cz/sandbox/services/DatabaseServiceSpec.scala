@@ -34,7 +34,7 @@ class DatabaseServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
     Await.result(db.run(sqlu"""#$testdataSql"""), Duration.Inf)
   }
 
-  "DatabaseService" should {
+  "QueryDatabaseService" should {
     "retrieve data from a dynamic table" in {
       loadTestData()
 
@@ -43,7 +43,7 @@ class DatabaseServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
 
       val dbConfigProvider = app.injector.instanceOf[DatabaseConfigProvider]
       implicit val ec = app.injector.instanceOf[scala.concurrent.ExecutionContext]
-      val databaseService = new DatabaseService(dbConfigProvider)
+      val databaseService = new QueryDatabaseService(dbConfigProvider)
 
       val resultFuture = databaseService.getData(schema, tableName)
 

@@ -2,7 +2,7 @@ package cz.sandbox.controllers
 
 import com.google.inject.Inject
 import cz.sandbox.errors.UnimplementedException
-import cz.sandbox.services.DatabaseService
+import cz.sandbox.services.{ConfigDatabaseService, QueryDatabaseService}
 import play.api.libs.json._
 import play.api.mvc._
 
@@ -10,7 +10,8 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
 class TabsController @Inject()(val controllerComponents: ControllerComponents,
-                               val databaseService: DatabaseService)(implicit ec: ExecutionContext)
+                               val queryDatabaseService: QueryDatabaseService,
+                               val configDatabaseService: ConfigDatabaseService)(implicit ec: ExecutionContext)
   extends BaseController {
 
   private implicit val anyReads: Reads[Any] = {
@@ -33,14 +34,24 @@ class TabsController @Inject()(val controllerComponents: ControllerComponents,
 
   def getRows(appName: String, tabName: String): Action[AnyContent] = Action.async { implicit request: Request[AnyContent] =>
     handleEmptyParameters(appName, tabName) {
-      databaseService.getData(appName, tabName).map { rows =>
-        val records = rows.map(row => Json.toJson(row))
-        val json = Json.obj("records" -> records)
-        Ok(json)
-      }.recover {
-        case e: Exception => e.printStackTrace()
-          InternalServerError(e.getMessage)
-      }
+      for {
+        apps <- configDatabaseService.getAllApps
+        appOpt = apps.find(_.appName == appName)
+        result <- appOpt match {
+          case Some(app) if app.isRestAllowed.contains(true) =>
+            queryDatabaseService.getData(appName, tabName).map { rows =>
+              val records = rows.map(row => Json.toJson(row))
+              val json = Json.obj("records" -> records)
+              Ok(json)
+            }
+          case _ =>
+            Future.successful(Forbidden("Not allowed"))
+        }
+      } yield result
+    }.recover {
+      case e: Exception =>
+        e.printStackTrace()
+        InternalServerError(e.getMessage)
     }
   }
 
@@ -49,7 +60,7 @@ class TabsController @Inject()(val controllerComponents: ControllerComponents,
       request.body.asJson match {
         case Some(json) =>
           val records = (json \ "records").as[List[Map[String, Any]]]
-          databaseService.insertData(appName, tabName, records).map { _ =>
+          queryDatabaseService.insertData(appName, tabName, records).map { _ =>
             Ok(Json.obj("message" -> "Records processed successfully"))
           }.recover(handleExceptions)
         case None =>

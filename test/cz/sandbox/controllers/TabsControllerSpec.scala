@@ -1,6 +1,6 @@
 package cz.sandbox.controllers
 
-import cz.sandbox.services.DatabaseService
+import cz.sandbox.services.{ConfigDatabaseService, QueryDatabaseService}
 import org.mockito.Mockito._
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play._
@@ -14,8 +14,9 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class TabsControllerSpec extends PlaySpec with MockitoSugar with Results {
   implicit val ec: ExecutionContext = ExecutionContext.global
-  val mockDatabaseService: DatabaseService = mock[DatabaseService]
-  val controller = new TabsController(stubControllerComponents(), mockDatabaseService)
+  val mockQueryDatabaseService: QueryDatabaseService = mock[QueryDatabaseService]
+  val mockConfigDatabaseService: ConfigDatabaseService = mock[ConfigDatabaseService]
+  val controller = new TabsController(stubControllerComponents(), mockQueryDatabaseService, mockConfigDatabaseService)
 
   "TabsController#getRows" should {
     "return BadRequest if appName or tabName are empty" in {
@@ -29,7 +30,7 @@ class TabsControllerSpec extends PlaySpec with MockitoSugar with Results {
     }
 
     "return JSON data if appName and tabName are non-empty" in {
-      when(mockDatabaseService.getData("appName", "tabName")).thenReturn(Future.successful(List(Map("key" -> "value"))))
+      when(mockQueryDatabaseService.getData("appName", "tabName")).thenReturn(Future.successful(List(Map("key" -> "value"))))
 
       val result: Future[Result] = controller.getRows("appName", "tabName").apply(FakeRequest())
       status(result) mustBe OK
@@ -39,7 +40,7 @@ class TabsControllerSpec extends PlaySpec with MockitoSugar with Results {
     }
 
     "return InternalServerError if an exception is thrown" in {
-      when(mockDatabaseService.getData("appName", "tabName")).thenReturn(Future.failed(new Exception("error message")))
+      when(mockQueryDatabaseService.getData("appName", "tabName")).thenReturn(Future.failed(new Exception("error message")))
 
       val result: Future[Result] = controller.getRows("appName", "tabName").apply(FakeRequest())
       status(result) mustBe INTERNAL_SERVER_ERROR
@@ -64,7 +65,7 @@ class TabsControllerSpec extends PlaySpec with MockitoSugar with Results {
     }
 
     "return Ok if request body is valid JSON and insertData succeeds" in {
-      when(mockDatabaseService.insertData("appName", "tabName", List(Map("key" -> "value")))).thenReturn(Future.successful(()))
+      when(mockQueryDatabaseService.insertData("appName", "tabName", List(Map("key" -> "value")))).thenReturn(Future.successful(()))
 
       val json = Json.obj("records" -> Json.arr(Json.obj("key" -> "value")))
       val result: Future[Result] = controller.newRows("appName", "tabName").apply(FakeRequest().withJsonBody(json))
@@ -73,7 +74,7 @@ class TabsControllerSpec extends PlaySpec with MockitoSugar with Results {
     }
 
     "return InternalServerError if insertData throws an exception" in {
-      when(mockDatabaseService.insertData("appName", "tabName", List(Map("key" -> "value")))).thenReturn(Future.failed(new Exception("error message")))
+      when(mockQueryDatabaseService.insertData("appName", "tabName", List(Map("key" -> "value")))).thenReturn(Future.failed(new Exception("error message")))
 
       val json = Json.obj("records" -> Json.arr(Json.obj("key" -> "value")))
       val result: Future[Result] = controller.newRows("appName", "tabName").apply(FakeRequest().withJsonBody(json))

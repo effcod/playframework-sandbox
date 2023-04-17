@@ -1,6 +1,6 @@
 package cz.sandbox.controllers
 
-import cz.sandbox.services.DatabaseService
+import cz.sandbox.services.ConfigDatabaseService
 import org.mockito.Mockito._
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play._
@@ -14,7 +14,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class BasicControllerSpec extends PlaySpec with MockitoSugar with Results {
   implicit val ec: ExecutionContext = ExecutionContext.global
-  val mockDatabaseService: DatabaseService = mock[DatabaseService]
+  val mockDatabaseService: ConfigDatabaseService = mock[ConfigDatabaseService]
   val controller = new BasicController(Helpers.stubControllerComponents(), mockDatabaseService)
 
   "BasicController" should {
