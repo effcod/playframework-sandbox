@@ -35,6 +35,7 @@ group 'cz.playframework-sandbox'
 archivesBaseName = "api_${guiScalaVersion}"
 
 test {
+    systemProperty "config.file", "test.conf"
     useJUnitPlatform()
 }
 

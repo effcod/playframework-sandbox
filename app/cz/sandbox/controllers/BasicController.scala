@@ -1,6 +1,6 @@
 package cz.sandbox.controllers
 
-import cz.sandbox.services.ConfigDatabaseService
+import cz.sandbox.services.impl.ConfigDatabaseService
 import play.api.mvc._
 
 import javax.inject.Inject
@@ -15,7 +15,7 @@ class BasicController @Inject()(cc: ControllerComponents, confDatabaseService: C
       properties.load(inStream)
       properties.getProperty("version")
     } match {
-      case Failure(exception) => InternalServerError("Cannot determine version")
+      case Failure(exception) => InternalServerError(s"Cannot determine version: ${exception.getMessage}")
       case Success(value) => Ok(value)
     }
   }

@@ -1,6 +1,6 @@
 package cz.sandbox.controllers
 
-import cz.sandbox.services.ConfigDatabaseService
+import cz.sandbox.services.impl.ConfigDatabaseService
 import org.mockito.Mockito._
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play._

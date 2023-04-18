@@ -2,12 +2,14 @@ package cz.sandbox.controllers
 
 import com.google.inject.Inject
 import cz.sandbox.errors.UnimplementedException
-import cz.sandbox.services.{ConfigDatabaseService, QueryDatabaseService}
+import cz.sandbox.models.Col
+import cz.sandbox.services.impl.{ConfigDatabaseService, QueryDatabaseService}
 import play.api.libs.json._
 import play.api.mvc._
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
+
 
 class TabsController @Inject()(val controllerComponents: ControllerComponents,
                                val queryDatabaseService: QueryDatabaseService,
@@ -17,7 +19,7 @@ class TabsController @Inject()(val controllerComponents: ControllerComponents,
   private implicit val anyReads: Reads[Any] = {
     case JsString(s) => JsSuccess(s)
     case JsNumber(n) => JsSuccess(n.toInt) // double?
-    case _ => JsError("Unsupported type")
+    case x => throw UnimplementedException(s"Conversion from Json type: ${x.getClass.getName} to Database is missing")
   }
 
   private implicit val anyWrites: Writes[Any] = {
@@ -35,17 +37,25 @@ class TabsController @Inject()(val controllerComponents: ControllerComponents,
   def getRows(appName: String, tabName: String): Action[AnyContent] = Action.async { implicit request: Request[AnyContent] =>
     handleEmptyParameters(appName, tabName) {
       for {
-        apps <- configDatabaseService.getAllApps
-        appOpt = apps.find(_.appName == appName)
-        result <- appOpt match {
-          case Some(app) if app.isRestAllowed.contains(true) =>
-            queryDatabaseService.getData(appName, tabName).map { rows =>
+        appOpt <- configDatabaseService.getAllApps.map(_.find(_.appName.toUpperCase == appName.toUpperCase))
+        tabOpt <- configDatabaseService.getAllTabs(appName).map(_.find(_.tabName.toUpperCase == tabName.toUpperCase))
+        result <- (appOpt, tabOpt) match {
+          case (Some(app), Some(tab)) if app.isAllowedRestDownload.contains(true) && tab.schema.nonEmpty =>
+            // handle case where both app and tab are found and app.isRestAllowed is true and tab.schema is non-empty
+            queryDatabaseService.getData(tab.schema, tab.tabName).map { rows =>
               val records = rows.map(row => Json.toJson(row))
               val json = Json.obj("records" -> records)
-              Ok(json)
+              val prettyJson = Json.prettyPrint(json)
+              Ok(prettyJson)
+            }.recover {
+              case e: Exception => e.printStackTrace()
+                InternalServerError(e.getMessage)
             }
+          case (Some(app), Some(tab)) if !app.isAllowedRestDownload.getOrElse(false) =>
+            Future.successful(BadRequest("Both app and tab found but app.isRestAllowed is false"))
           case _ =>
-            Future.successful(Forbidden("Not allowed"))
+            // handle other cases
+            Future.successful(BadRequest("Either app or tab not found"))
         }
       } yield result
     }.recover {
@@ -55,18 +65,47 @@ class TabsController @Inject()(val controllerComponents: ControllerComponents,
     }
   }
 
+  def retype(value: List[Map[String, Any]], conf: Seq[Col]) : List[Map[String, Any]] = {
+    val colTypMap = conf.map { column => column.colName.toLowerCase -> column.colType}.toMap
+    value.map { rowMap =>
+      rowMap.map { case (colName, colValue) =>
+        val retypeValue = colTypMap.get(colName.toLowerCase).map { typ =>
+          typ.toLowerCase match {
+            case "d" => new java.sql.Date(TimeUnit.NANOSECONDS.toMillis(colValue.asInstanceOf[Number].longValue))
+            case _ => colValue
+          }
+        }
+        (colName, retypeValue)
+      }.filter(_._2.isDefined)
+    }
+  }
+
   def newRows(appName: String, tabName: String): Action[AnyContent] = Action.async { implicit request =>
     handleEmptyParameters(appName, tabName) {
-      request.body.asJson match {
-        case Some(json) =>
-          val records = (json \ "records").as[List[Map[String, Any]]]
-          queryDatabaseService.insertData(appName, tabName, records).map { _ =>
-            Ok(Json.obj("message" -> "Records processed successfully"))
-          }.recover(handleExceptions)
-        case None =>
-          Future.successful(BadRequest("Invalid JSON data"))
-      }
-    }
+      for {
+        appOpt <- configDatabaseService.getAllApps.map(_.find(_.appName.toUpperCase == appName.toUpperCase))
+        tabOpt <- configDatabaseService.getAllTabs(appName).map(_.find(_.tabName.toUpperCase == tabName.toUpperCase))
+        colsSeq <- configDatabaseService.getAllCols(appName, tabName)
+        result <- (appOpt, tabOpt, colsSeq) match {
+          case (Some(app), Some(tab), colsSeq) if app.isAllowedRestUpload.contains(true) && tab.schema.nonEmpty =>
+            request.body.asJson match {
+              case Some(json) =>
+                val recordsFromRequest = (json \ "records").as[List[Map[String, Any]]]
+                val records = retype(recordsFromRequest, colsSeq)
+                queryDatabaseService.insertData(tab.schema, tab.tabName, records).map { _ =>
+                  Ok(Json.obj("message" -> "Records processed successfully"))
+                }.recover(handleExceptions)
+              case None =>
+                Future.successful(BadRequest("Invalid JSON data"))
+            }
+          case (Some(app), Some(tab), colsSeq) if !app.isAllowedRestUpload.getOrElse(false) =>
+            Future.successful(BadRequest("Both app and tab found but app.isAllowedRestUpload is false"))
+          case _ =>
+            // handle other cases
+            Future.successful(BadRequest("Either app or tab not found"))
+        }
+      } yield result
+    }.recover(handleExceptions)
   }
 
   private def handleEmptyParameters(appName: String, tabName: String)(f: => Future[Result]): Future[Result] = {
@@ -81,6 +120,4 @@ class TabsController @Inject()(val controllerComponents: ControllerComponents,
     case e: Exception =>
       InternalServerError(e.getMessage)
   }
-
-
 }

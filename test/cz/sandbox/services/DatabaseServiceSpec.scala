@@ -1,5 +1,6 @@
 package cz.sandbox.services
 
+import cz.sandbox.services.impl.QueryDatabaseService
 import org.scalatestplus.play._
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application

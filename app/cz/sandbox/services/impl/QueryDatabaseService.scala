@@ -1,4 +1,4 @@
-package cz.sandbox.services
+package cz.sandbox.services.impl
 
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.{GetResult, JdbcProfile}
@@ -8,7 +8,6 @@ import scala.concurrent.{ExecutionContext, Future}
 
 
 //https://scala-slick.org/doc/3.3.3/database.html#connection-pool
-
 class QueryDatabaseService @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
                                    (implicit ec: ExecutionContext)
   extends HasDatabaseConfigProvider[JdbcProfile] {
@@ -31,10 +30,12 @@ class QueryDatabaseService @Inject()(protected val dbConfigProvider: DatabaseCon
   }
 
   def insertData(schema: String, tableName: String, data: List[Map[String, Any]]): Future[Unit] = {
-    val columns = data.head.keys.mkString(", ")
-    val placeholders = data.head.keys.map(_ => "?").mkString(", ")
+    val columnsList = data.head.keys.toList
+    val columns = columnsList.mkString(", ")
+    val placeholders = columnsList.map(_ => "?").mkString(", ")
     val values = data.map(_.values.toSeq)
     val query = s"INSERT INTO $schema.$tableName ($columns) VALUES ($placeholders)"
+    println(query)
     val actions = values.map { value =>
       SimpleDBIO[Unit] { session =>
         val preparedStatement = session.connection.prepareStatement(query)

@@ -1,6 +1,5 @@
 package cz.sandbox.controllers
 
-import cz.sandbox.services.{ConfigDatabaseService, QueryDatabaseService}
 import org.mockito.Mockito._
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play._
@@ -10,6 +9,7 @@ import play.api.mvc.{Result, Results}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import cz.sandbox.models.App
+import cz.sandbox.services.impl.{ConfigDatabaseService, QueryDatabaseService}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -31,7 +31,7 @@ class TabsControllerSpec extends PlaySpec with MockitoSugar with Results {
     }
 
     "return Forbidden if REST is not allowed for the given appName" in {
-      when(mockConfigDatabaseService.getAllApps).thenReturn(Future.successful(Seq(App("appName", "appDesc", Some(false)))))
+      when(mockConfigDatabaseService.getAllApps).thenReturn(Future.successful(Seq(App("appName", "appDesc", Some(false), Some(false)))))
 
       val result: Future[Result] = controller.getRows("appName", "tabName").apply(FakeRequest())
       status(result) mustBe FORBIDDEN
@@ -39,7 +39,7 @@ class TabsControllerSpec extends PlaySpec with MockitoSugar with Results {
     }
 
     "return JSON data if appName and tabName are non-empty and REST is allowed for the given appName" in {
-      when(mockConfigDatabaseService.getAllApps).thenReturn(Future.successful(Seq(App("appName", "appDesc", Some(true)))))
+      when(mockConfigDatabaseService.getAllApps).thenReturn(Future.successful(Seq(App("appName", "appDesc", Some(true), Some(true)))))
       when(mockQueryDatabaseService.getData("appName", "tabName")).thenReturn(Future.successful(List(Map("key" -> "value"))))
 
       val result: Future[Result] = controller.getRows("appName", "tabName").apply(FakeRequest())
