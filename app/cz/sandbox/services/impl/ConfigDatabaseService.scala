@@ -25,7 +25,7 @@ case class ColRow(appName: String,
                   colPk: String,
                   colRequired: String,
                   colType: String,
-                  colFormat: String
+                  colFormat: Option[String]
                  )
 
 trait AppTableComponent { self: HasDatabaseConfigProvider[JdbcProfile] =>
@@ -60,7 +60,7 @@ trait ColTableComponent { self: HasDatabaseConfigProvider[JdbcProfile] =>
     def colPk = column[String]("COL_PK")
     def colRequired = column[String]("COL_REQUIRED")
     def colType = column[String]("COL_DATATYPE")
-    def colFormat = column[String]("COL_FORMAT")
+    def colFormat = column[Option[String]]("COL_FORMAT")
 
     def * = (appName, tabName, colName, colPk, colRequired, colType, colFormat) <> (ColRow.tupled, ColRow.unapply)
   }
@@ -73,9 +73,9 @@ class ConfigDatabaseService @Inject() (protected val dbConfigProvider: DatabaseC
 
   import profile.api._
 
-  val app = lifted.TableQuery[AppTable]
+  val appTable = lifted.TableQuery[AppTable]
   def getAllApps: Future[Seq[App]] = {
-    val query = app.result
+    val query = appTable.result
     db.run(query).map { rows =>
       rows.map { row =>
         val settingsJson =  play.api.libs.json.Json.parse(row.settings)
@@ -91,9 +91,9 @@ class ConfigDatabaseService @Inject() (protected val dbConfigProvider: DatabaseC
     }
   }
 
-  val tab = lifted.TableQuery[TabTable]
+  val tabTable = lifted.TableQuery[TabTable]
   def getAllTabs(appName: String): Future[Seq[Tab]] = {
-    val query = tab.filter(_.appName.toLowerCase === appName.toLowerCase).result
+    val query = tabTable.filter(_.appName.toLowerCase === appName.toLowerCase).result
     db.run(query).map { rows =>
       rows.map { row => Tab(
           appName = appName,
@@ -104,19 +104,19 @@ class ConfigDatabaseService @Inject() (protected val dbConfigProvider: DatabaseC
     }
   }
 
-  val col = lifted.TableQuery[ColTable]
+  val colTable = lifted.TableQuery[ColTable]
 
   def getAllCols(appName: String, tabName: String): Future[Seq[Col]] = {
-    val query = col.filter(x => x.appName.toLowerCase === appName.toLowerCase && x.tabName.toLowerCase === tabName.toLowerCase).result
+    val query = colTable.filter(x => x.appName.toLowerCase === appName.toLowerCase && x.tabName.toLowerCase === tabName.toLowerCase).result
     db.run(query).map { rows =>
       rows.map { row =>
         Col(appName = appName,
           tabName = row.tabName,
           colName = row.colName,
           isPk = row.colPk.equalsIgnoreCase("Y"),
-            isRequired = row.colRequired.equalsIgnoreCase("Y"),
-            colType = row.colType,
-            colFormat = row.colFormat
+          isRequired = row.colRequired.equalsIgnoreCase("Y"),
+          colType = row.colType,
+          colFormat = row.colFormat
         )
       }
     }

@@ -40,6 +40,8 @@ class QueryDatabaseService @Inject()(protected val dbConfigProvider: DatabaseCon
       SimpleDBIO[Unit] { session =>
         val preparedStatement = session.connection.prepareStatement(query)
         value.zipWithIndex.foreach {
+          case (Some(v), i) => preparedStatement.setObject(i + 1, v)
+          case (None, i) => preparedStatement.setNull(i + 1, java.sql.Types.NULL) // needs manually convert to null -> because it uses plain sql
           case (v, i) => preparedStatement.setObject(i + 1, v)
         }
         preparedStatement.executeUpdate()

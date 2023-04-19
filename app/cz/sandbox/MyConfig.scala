@@ -3,7 +3,7 @@ package cz.sandbox
 //import com.github.racc.tscg.TypesafeConfig
 
 import javax.inject.Inject
-
+/*
 class MyConfig  {
   @Inject
   //@TypesafeConfig("env")
@@ -21,3 +21,4 @@ class MyConfig  {
   //@TypesafeConfig("serviceVersion")
   var serviceVersion = new java.util.HashMap[String, String]
 }
+*/

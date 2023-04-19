@@ -9,6 +9,7 @@ import play.api.mvc._
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 
 class TabsController @Inject()(val controllerComponents: ControllerComponents,
@@ -18,7 +19,8 @@ class TabsController @Inject()(val controllerComponents: ControllerComponents,
 
   private implicit val anyReads: Reads[Any] = {
     case JsString(s) => JsSuccess(s)
-    case JsNumber(n) => JsSuccess(n.toInt) // double?
+    case JsNumber(n) => JsSuccess(n) //for all numbers keep bigdecimal
+    case JsNull => JsSuccess(None)
     case x => throw UnimplementedException(s"Conversion from Json type: ${x.getClass.getName} to Database is missing")
   }
 
@@ -65,18 +67,27 @@ class TabsController @Inject()(val controllerComponents: ControllerComponents,
     }
   }
 
-  def retype(value: List[Map[String, Any]], conf: Seq[Col]) : List[Map[String, Any]] = {
-    val colTypMap = conf.map { column => column.colName.toLowerCase -> column.colType}.toMap
-    value.map { rowMap =>
-      rowMap.map { case (colName, colValue) =>
-        val retypeValue = colTypMap.get(colName.toLowerCase).map { typ =>
-          typ.toLowerCase match {
-            case "d" => new java.sql.Date(TimeUnit.NANOSECONDS.toMillis(colValue.asInstanceOf[Number].longValue))
-            case _ => colValue
+  def retype(values: List[Map[String, Any]], conf: Seq[Col]): List[Map[String, Any]] = {
+    val colTypMap = conf.map { column => column.colName.toLowerCase -> column.colType }.toMap
+    values.map { rowMap =>
+      rowMap
+        .filter { case (colName, _) => colTypMap.contains(colName.toLowerCase) } // filter out columns which are not defined in xmdm gui
+        .map { case (colName, colValue) => // retype values -> Long -> sql.Date, Number to Double, keep empty as None
+          val isEmpty = colValue match {
+            case option: Option[Any] => option.isDefined
+            case _ => false
+          }
+
+          if (isEmpty) (colName, colValue)
+          else {
+            val recast = colTypMap(colName.toLowerCase).toLowerCase match {
+              case "d" => Try(new java.sql.Date(TimeUnit.NANOSECONDS.toMillis(colValue.asInstanceOf[BigDecimal].longValue))).getOrElse(None)
+              case "n" => Try(colValue.asInstanceOf[BigDecimal].doubleValue).getOrElse(None)
+              case _ => colValue
+            }
+            (colName, recast)
           }
         }
-        (colName, retypeValue)
-      }.filter(_._2.isDefined)
     }
   }
 

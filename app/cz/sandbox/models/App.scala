@@ -3,7 +3,7 @@ package cz.sandbox.models
 case class App(
                 appName: String,
                 appDesc: String,
-``                isAllowedRestDownload: Option[Boolean],
+                isAllowedRestDownload: Option[Boolean],
                 isAllowedRestUpload: Option[Boolean]
               )
 
@@ -20,5 +20,5 @@ case class Col(appName: String,
                   isPk: Boolean,
                   isRequired: Boolean,
                   colType: String,
-                  colFormat: String
+                  colFormat: Option[String]
                  )
