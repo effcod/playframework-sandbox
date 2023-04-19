@@ -52,13 +52,14 @@ play {
 dependencies {
     implementation "commons-lang:commons-lang:2.6"
     implementation "com.typesafe.play:play-guice_${scalaVersion}:${guiPlayVersion}"
-    implementation "ch.qos.logback:logback-classic:1.2.3"
+    implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.4"
+    implementation 'ch.qos.logback:logback-classic:1.2.6'
 
     //implementation group: 'com.github.dwickern', name: "swagger-play2.8_${guiScalaVersion}", version: '3.1.0'
     // swagger
-    implementation(group: 'com.iterable', name: "swagger-play_${scalaVersion}", version: '2.0.1')
-    implementation(group: 'org.webjars', name: "webjars-play_${scalaVersion}", version: '2.7.3')
-    implementation(group: 'org.webjars', name: 'swagger-ui', version: '3.25.0')
+    //implementation(group: 'com.iterable', name: "swagger-play_${scalaVersion}", version: '2.0.1')
+    //implementation(group: 'org.webjars', name: "webjars-play_${scalaVersion}", version: '2.7.3')
+    //implementation(group: 'org.webjars', name: 'swagger-ui', version: '3.25.0')
 
 
 
